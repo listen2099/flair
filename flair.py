@@ -588,6 +588,8 @@ def collapse(genomic_range='', corrected_reads=''):
 			# 	args.f, args.annotated_bed])
 
 		if args.annotation_reliant == 'generate':
+			if not args.generate_map:
+				args.generate_map = True
 			args.annotation_reliant = args.o+'annotated_transcripts.fa'
 			subprocess.call([sys.executable, path+'bin/psl_to_sequence.py', args.o+'annotated_transcripts.bed', args.g, args.annotation_reliant])
 
