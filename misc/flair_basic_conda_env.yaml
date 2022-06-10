@@ -1,0 +1,21 @@
+name: flair_basic_conda_env
+# this version can only run align, correct, and collapse
+# which means it does not need r packages
+channels:
+  - bioconda
+  - conda
+  - Quantopian
+  - conda-forge
+dependencies:
+  - python=3.6.5   # or 2.7
+  - numpy
+  - tqdm
+  - ncls
+  - samtools
+  - bedtools=2.25.0
+  - pybedtools
+  - minimap2
+  - mappy
+  - intervaltree
+  - pysam
+  - kerneltree
