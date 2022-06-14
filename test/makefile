@@ -50,21 +50,15 @@ test-correct-short-reads-annotation :
 	diff -q <(sort $R/test.correct.shortread.annotation_all_inconsistent.bed) <(sort $O/test.correct.shortread.annotation_all_inconsistent.bed) > $D/test.correct_shortread_annotation.inconsistent.diff
 	diff -q <(sort $R/test.correct.shortread.annotation_all_corrected.bed) <(sort $O/test.correct.shortread.annotation_all_corrected.bed) > $D/test.correct_shortread_annotation.corrected.diff
 
+test-correct-params :
+	python $(FLAIR) correct --query $(UNCORRECTED_READS_BED) --shortread $R/shortread_junctions.tab --genome $(GENOME) --output $O/test.correct.params --chromsizes $R/chrom.sizes --nvrna --ss_window 8
+	diff -q <(sort $R/test.correct.params_all_inconsistent.bed ) <(sort $O/test.correct.params_all_inconsistent.bed) > $D/test.correct.params.diff
+
 test-correct-window-25 :
 	python $(FLAIR) correct -q $(UNCORRECTED_READS_BED) -j $R/shortread_junctions.tab  -f $(ANNOTATION) -g $(GENOME) -w 25 -o $O/test.correct.w25
 	diff -q <(sort $R/test.correct.w25_all_corrected.bed) <(sort $O/test.correct.w25_all_corrected.bed) > $D/test.correct_w25.diff
 
-test-collapse-isoforms-precise-longest :
-	python $(FLAIR_BIN)collapse_isoforms_precise.py -q $(READS_BED) -w 40 -n longest -o $O/test.collapse_isoforms_precise.longest.bed
-	diff -q <(sort $R/test.collapse_isoforms_precise.longest.bed) <(sort $O/test.collapse_isoforms_precise.longest.bed) > $D/test.collapse_isoforms_precise.longest.diff
-
-test-collapse-isoforms-precise-best-only :
-	python $(FLAIR_BIN)collapse_isoforms_precise.py -q $(READS_BED) -w 40 -n best_only -o $O/test.collapse_isoforms_precise.best_only.bed
-	diff -q <(sort $R/test.collapse_isoforms_precise.best_only.bed) <(sort $O/test.collapse_isoforms_precise.best_only.bed) > $D/test.collapse_isoforms_precise.best_only.diff
-
-test-collapse-isoforms-precise-m2 :
-	python $(FLAIR_BIN)collapse_isoforms_precise.py -q $(READS_BED) -w 40 -m 2 -s 0.05 -o $O/test.collapse_isoforms_precise.max2.bed
-	diff -q <(sort $R/test.collapse_isoforms_precise.max2.bed) <(sort $O/test.collapse_isoforms_precise.max2.bed) > $D/test.collapse_isoforms_precise.max2.diff
+# COUNT SAM
 
 test-count-sam-transcripts :
 	python $(FLAIR_BIN)count_sam_transcripts.py -s $(FIRSTPASS_Q_SAM) -t 4 --generate_map $O/test.count_sam_transcripts.map.txt -o $O/test.count_sam_transcripts 
@@ -78,6 +72,20 @@ test-count-sam-transcripts-trust-ends :
 test-count-sam-transcripts-stringent :
 	python $(FLAIR_BIN)count_sam_transcripts.py -s $(FIRSTPASS_Q_SAM) -t 4 --generate_map $O/test.count_sam_transcripts.stringent.map.txt -o $O/test.count_sam_transcripts.stringent --stringent -i $(FIRSTPASS_BED)
 	diff -q <(sort $R/test.count_sam_transcripts.stringent.map.txt) <(sort $O/test.count_sam_transcripts.stringent.map.txt) > $D/test.count_sam_transcripts.stringent.diff
+
+# COLLAPSE
+
+test-collapse-isoforms-precise-longest :
+	python $(FLAIR_BIN)collapse_isoforms_precise.py -q $(READS_BED) -w 40 -n longest -o $O/test.collapse_isoforms_precise.longest.bed
+	diff -q <(sort $R/test.collapse_isoforms_precise.longest.bed) <(sort $O/test.collapse_isoforms_precise.longest.bed) > $D/test.collapse_isoforms_precise.longest.diff
+
+test-collapse-isoforms-precise-best-only :
+	python $(FLAIR_BIN)collapse_isoforms_precise.py -q $(READS_BED) -w 40 -n best_only -o $O/test.collapse_isoforms_precise.best_only.bed
+	diff -q <(sort $R/test.collapse_isoforms_precise.best_only.bed) <(sort $O/test.collapse_isoforms_precise.best_only.bed) > $D/test.collapse_isoforms_precise.best_only.diff
+
+test-collapse-isoforms-precise-m2 :
+	python $(FLAIR_BIN)collapse_isoforms_precise.py -q $(READS_BED) -w 40 -m 2 -s 0.05 -o $O/test.collapse_isoforms_precise.max2.bed
+	diff -q <(sort $R/test.collapse_isoforms_precise.max2.bed) <(sort $O/test.collapse_isoforms_precise.max2.bed) > $D/test.collapse_isoforms_precise.max2.diff
 
 test-collapse-sensitive :
 	python $(FLAIR) collapse -r $(READS_FA) -q $(READS_BED) -g $(GENOME) -t 4 --generate_map --temp_dir $O/temp_collapse --keep_intermediate -f $(ANNOTATION) -o $O/test.collapse --quiet
@@ -96,6 +104,19 @@ test-collapse-stringent :
 test-collapse-remove :
 	python $(FLAIR) collapse -r $(READS_FA) -q $(READS_BED) -g $(GENOME) -t 4 --generate_map --temp_dir $O/temp_collapse_to_remove -f $(ANNOTATION) -o $O/test.collapse.remove --quiet
 	diff -q <(sort $R/test.collapse.isoforms.bed) <(sort $O/test.collapse.remove.isoforms.bed) > $D/test.collapse.remove.diff
+
+test-collapse-annotation-reliant-fasta :
+	python $(FLAIR) collapse -r $(READS_FA) -q $(READS_BED) -g $(GENOME) -t 4 --generate_map --annotation_reliant $R/annotation.fa --temp_dir $O/temp_collapse --keep_intermediate -f $(ANNOTATION) --stringent -o $O/test.collapse.annotation.reliant.fasta --quiet
+	diff -q <(sort $R/test.collapse.annotation.reliant.fasta.isoforms.bed) <(sort $O/test.collapse.annotation.reliant.fasta.isoforms.bed) > $D/test.collapse.annotation.reliant.fasta.diff
+
+test-collapse-annotation-reliant-generate :
+	python $(FLAIR) collapse -r $(READS_FA) -q $(READS_BED) -g $(GENOME) -t 4 --generate_map --annotation_reliant generate --temp_dir $O/temp_collapse --keep_intermediate -f $(ANNOTATION) --stringent -o $O/test.collapse.annotation.reliant.generate --quiet
+	diff -q <(sort $R/test.collapse.annotation.reliant.generate.annotated_transcripts.bed) <(sort $O/test.collapse.annotation.reliant.generate.annotated_transcripts.bed) > $D/test.collapse.annotation.reliant.generate.annotated_transcripts.diff
+	diff -q <(sort $R/test.collapse.annotation.reliant.generate.annotated_transcripts.supported.bed) <(sort $O/test.collapse.annotation.reliant.generate.annotated_transcripts.supported.bed) > $D/test.collapse.annotation.reliant.generate.annotated_transcripts.supported.diff
+	diff -q <(sort $R/test.collapse.annotation.reliant.generate.unassigned.bed) <(sort $O/test.collapse.annotation.reliant.generate.unassigned.bed) > $D/test.collapse.annotation.reliant.generate.unassigned.diff
+	diff -q <(sort $R/test.collapse.annotation.reliant.generate.annotated_transcripts.alignment.counts) <(sort $O/test.collapse.annotation.reliant.generate.annotated_transcripts.alignment.counts) > $D/test.collapse.annotation.reliant.generate.annotated_transcripts.alignment.counts.diff
+	diff -q <(sort $R/test.collapse.annotation.reliant.generate.annotated_transcripts.isoform.read.map.txt) <(sort $O/test.collapse.annotation.reliant.generate.annotated_transcripts.isoform.read.map.txt) > $D/test.collapse.annotation.reliant.generate.annotated_transcripts.isoform.read.map.txt.diff
+	diff -q <(sort $R/test.collapse.annotation.reliant.generate.combined.isoform.read.map.txt) <(sort $O/test.collapse.annotation.reliant.generate.combined.isoform.read.map.txt) > $D/test.collapse.annotation.reliant.generate.combined.isoform.read.map.txt.diff
 
 # test promoter region collapse
 test-collapse-promoter :
@@ -161,7 +182,7 @@ test-234 :
 	diff -q <(sort $R/test.collapse.isoforms.bed) <(sort $O/test.234.isoforms.bed) > $D/test.234.diff
 
 test-align : test-align-base test-align-params
-test-correct : test-correct-short-reads test-correct-annotation test-correct-short-reads-annotation test-correct-window-25
+test-correct : test-correct-short-reads test-correct-annotation test-correct-short-reads-annotation test-correct-window-25 test-correct-params
 test-cip : test-collapse-isoforms-precise-longest test-collapse-isoforms-precise-best-only test-collapse-isoforms-precise-m2
 test-cst : test-count-sam-transcripts test-count-sam-transcripts-stringent test-count-sam-transcripts-trust-ends
 test-collapse : test-cip test-cst test-collapse-sensitive test-collapse-stringent test-collapse-remove test-collapse-promoter
