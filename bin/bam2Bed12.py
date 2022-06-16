@@ -54,6 +54,7 @@ class CommandLine(object) :
                                             usage = '%(prog)s -i sorted.aligned.bam ')
         # Add args
         self.parser.add_argument('-i', "--input_bam", action = 'store', required=True, help='Input bam file.')
+        self.parser.add_argument('-o', "--output_bed", action = 'store', required=True, help='Output bed file.')
         self.parser.add_argument('--keep_supplementary', action = 'store_true', required=False, default=False,  help='Keep supplementary alignments')
 
         if inOpts is None :
@@ -106,42 +107,39 @@ def juncsToBed12(start, end, coords):
 # Here is the main program
 # 
 ########################################################################
-def main():
-    '''
-    stuff...
-    '''
-
-    myCommandLine = CommandLine()
+def bam2Bed12(alignmentFile, outfile, keep_supplementary=False):
     
-    alignmentFile = myCommandLine.args['input_bam']
-
     #Color codes for positive and negative stranded read transcripts
     positiveTxn = "27,158,119"
     negativeTxn = "217,95,2"
     unknownTxn = "99,99,99"
 
     # SAM Object allows for execution of many SAM-related functions.
-    sObj = SAM(alignmentFile, keep_supplementary = myCommandLine.args['keep_supplementary'])
-
-
-    for num, readData in enumerate(sObj.readJuncs(),0):
-        read, chrom, startPos, junctions, endPos, flags, tags, score = readData
-        blocks, sizes, starts = juncsToBed12(startPos, endPos, junctions)
-        flags = str(flags)
-
-        if tags == "+":
-
-            print(chrom, startPos, endPos, read + ";" + flags , score, tags, startPos, endPos, positiveTxn, blocks, 
-                ",".join(str(x) for x in sizes) + ",", ",".join(str(x) for x in starts) + ",", sep="\t")
-        elif tags == "-":
-            print(chrom, startPos, endPos, read + ";" + flags , score, tags, startPos, endPos, negativeTxn, blocks, 
-                ",".join(str(x) for x in sizes) + ",", ",".join(str(x) for x in starts) + ",", sep="\t")                    
-
-        else:
-            tags = "+" if flags == "0" else "-"
-            print(chrom, startPos, endPos, read + ";" + flags , score, tags, startPos, endPos, unknownTxn, blocks, 
-            ",".join(str(x) for x in sizes) + ",", ",".join(str(x) for x in starts) + ",", sep="\t")                    
+    sObj = SAM(alignmentFile, keep_supplementary) 
+    with open(outfile, 'w') as f:
+        for num, readData in enumerate(sObj.readJuncs(),0):
+            read, chrom, startPos, junctions, endPos, flags, tags, score = readData
+            blocks, sizes, starts = juncsToBed12(startPos, endPos, junctions)
+            flags = str(flags)
+    
+            if tags == "+":
+    
+                print(chrom, startPos, endPos, read + ";" + flags , score, tags, startPos, endPos, positiveTxn, blocks, 
+                    ",".join(str(x) for x in sizes) + ",", ",".join(str(x) for x in starts) + ",", sep="\t", file=f)
+            elif tags == "-":
+                print(chrom, startPos, endPos, read + ";" + flags , score, tags, startPos, endPos, negativeTxn, blocks, 
+                    ",".join(str(x) for x in sizes) + ",", ",".join(str(x) for x in starts) + ",", sep="\t", file=f)                    
+    
+            else:
+                tags = "+" if flags == "0" else "-"
+                print(chrom, startPos, endPos, read + ";" + flags , score, tags, startPos, endPos, unknownTxn, blocks, 
+                ",".join(str(x) for x in sizes) + ",", ",".join(str(x) for x in starts) + ",", sep="\t", file=f)                    
+    f.close()
 
 
 if __name__ == "__main__":
-    main();        
+    myCommandLine = CommandLine()
+    alignmentFile = myCommandLine.args['input_bam']
+    outfile = myCommandLine.args['output_bed']
+    keep_supplementary = myCommandLine.args['keep_supplementary']
+    bam2Bed12(alignmentFile, outfile, keep_supplementary)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import print_function
+from utils import handle_prog_errors
 
 ########################################################################
 # File: ssPrep.py
@@ -48,7 +49,6 @@ class CommandLine(object) :
         '''
         import argparse
         self.parser = argparse.ArgumentParser(description = ' ssPrep.py - a tool to leverage annotation and short read data to correct misaligned splice junctions in short read data.',
-                                             epilog = 'Please feel free to forward any questions/concerns to /dev/null', 
                                              add_help = True, #default is True 
                                              prefix_chars = '-', 
                                              usage = '%(prog)s -i reads.bed -j known_junctions.bed -o out_file.bed --working_dir dir')
@@ -407,10 +407,18 @@ def main():
 
 
     global checkFname
-    global currentChr
-    currentChr    = out
+    #global currentChr
+    #currentChr    = out
     checkFname    = myCommandLine.args['check_file']
+   
+    try: 
+        ssPrep(bed, knownJuncs, fa, wiggle, out, resolveStrand, workingDir, checkFname)
+    except:
+        sys.exit(1)
     
+def ssPrep(bed, knownJuncs, fa, wiggle, out, resolveStrand, workingDir, checkFname):
+    globals()['currentChr'] = out
+    globals()['checkFname'] = checkFname
     if checkFname: 
         with open(checkFname,'a+') as fo:
             print("** Correcting %s with a wiggle of %s against %s. Checking splice sites with genome %s." % (bed, wiggle, knownJuncs, fa), file=fo)
@@ -425,7 +433,8 @@ def main():
     # Build read objects.
     try:
         correctReads(bed, intTree, ssData, out, resolveStrand, workingDir)
-    except:
+    except Exception as ex:
+        handle_prog_errors(ex, True)
         if checkFname: 
             with open(checkFname,'a+') as fo:
                 print("** correctReads FAILED for %s" % (bed), file=fo)

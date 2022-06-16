@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import print_function
+from utils import handle_prog_errors
+from ssPrep import ssPrep
 
 ########################################################################
 # File: ssCorrect.py
@@ -56,7 +58,6 @@ class CommandLine(object) :
         '''
         import argparse
         self.parser = argparse.ArgumentParser(description = ' ssCorrect.py - a tool to leverage annotation and short read data to correct misaligned splice junctions in short read data.',
-                                             epilog = 'Please feel free to forward any questions/concerns to /dev/null',
                                              add_help = True, #default is True
                                              prefix_chars = '-',
                                              usage = '%(prog)s -i reads.bed -g annotations.gtf -j other_junctions.bed -o out_file.bed')
@@ -90,7 +91,6 @@ class CommandLine(object) :
 
 
 def addOtherJuncs(juncs, bedJuncs, chromosomes, fa, known):
-
 
     lineNum = 0
     if verbose: sys.stderr.write("Step 2/5: Processing additional junction file  %s ..." % (bedJuncs))
@@ -206,7 +206,6 @@ def addOtherJuncs(juncs, bedJuncs, chromosomes, fa, known):
 def gtfToSSBed(file, knownSS):
     ''' Convenience function, reformats GTF to bed'''
 
-
     # First: get all exons per transcript.
     exons = dict()
     chromosomes = set()
@@ -232,7 +231,6 @@ def gtfToSSBed(file, knownSS):
                     exons[key] = list()
                 exons[key].append(c1)
                 exons[key].append(c2)
-
     if printErr:
         with open(printErrFname,'a+') as fo:
             print("** Read GTF. Got %s transcripts" % len(list(exons.keys())), file=fo)
@@ -276,16 +274,28 @@ def gtfToSSBed(file, knownSS):
 
 def runCMD(x):
 
-
     tDir, prefix,juncs,reads, rs, f, err, errFname = x
-    cmd = "%s %s -i %s -j %s -o %s --workingDir %s -f %s " % (sys.executable, helperScript, reads,juncs,prefix, tDir, f)
-    if rs:
-        cmd += "--correctStrand "
-    if err:
-        cmd += "--check_file %s " % errFname
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    std, perr = p.communicate()
-    return perr
+#    cmd = "%s %s -i %s -j %s -o %s --workingDir %s -f %s " % (sys.executable, helperScript, reads,juncs,prefix, tDir, f)
+#    if rs:
+#        cmd += "--correctStrand "
+#    if err:
+#        cmd += "--check_file %s " % errFname
+#    print('\n', cmd)
+    resolveStrand = True if rs else False
+    checkFname = True if err else False
+    try:
+        ssPrep(bed=reads, knownJuncs=juncs, fa=f, wiggle=15, out=prefix, resolveStrand=resolveStrand, 
+		workingDir=tDir, checkFname=checkFname)
+    except Exception as ex:
+        sys.stderr.write('ssPrep command did not exit with success status\n')
+        handle_prog_errors(ex, True)
+#    except:
+#        print("not too preppy")
+#        return 1
+    return 0
+#    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#    std, perr = p.communicate()
+#    return perr
 
 def main():
     '''
@@ -304,7 +314,18 @@ def main():
     resolveStrand = myCommandLine.args['correctStrand']
     tempDirName   = myCommandLine.args['tempDir']
     genomeFasta   = myCommandLine.args['genome_fasta']
+    # There are a few functions that evaluate what verbose is defined as.
+    # Instead of passing it around, just global it.
+    global verbose
+    global printErrFname
+    global printErr
+    verbose  = myCommandLine.args['progress']
+    printErr = myCommandLine.args['print_check']
+    ssCorrect(bed, gtf, otherJuncs, wiggle, threads, outFile, keepTemp, resolveStrand, tempDirName, genomeFasta, verbose, printErr)
 
+def ssCorrect(bed, gtf, otherJuncs, wiggle, threads, outFile, keepTemp, resolveStrand, tempDirName, genomeFasta, verbose, printErr):
+    globals()['verbose'] = verbose
+    globals()['printErr'] = printErr
     if os.path.isfile(genomeFasta+".fai"):
         pass
     else:
@@ -326,13 +347,6 @@ def main():
         print ("Creation of the directory %s failed" % tempDirName)
         sys.exit(1)
 
-    # There are a few functions that evaluate what verbose is defined as.
-    # Instead of passing it around, just global it.
-    global verbose
-    global printErrFname
-    global printErr
-    verbose  = myCommandLine.args['progress']
-    printErr = myCommandLine.args['print_check']
     printErrFname = "err_%s.txt" % tempDirName
 
     # Convert gtf to bed and split by cromosome.
@@ -420,6 +434,6 @@ def main():
         except OSError as e:
             print("Error: %s - %s." % (e.filename, e.strerror), file=sys.stderr)
 
-    print("\n")
+
 if __name__ == "__main__":
     main()
