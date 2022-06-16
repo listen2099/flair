@@ -10,65 +10,6 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__))+'/bin')
 from flair_align import align 
 from flair_correct import correct
 
-def bcorrect(aligned_reads=''):
-	parser = argparse.ArgumentParser(description='flair-correct parse options',
-		usage='python flair.py correct -q query.bed12 [-f annotation.gtf]v[-j introns.tab] -g genome.fa [options]')
-	parser.add_argument('correct')
-	required = parser.add_argument_group('required named arguments')
-	atleastone = parser.add_argument_group('at least one of the following arguments is required')
-	if not aligned_reads:
-		required.add_argument('-q', '--query', type=str, default='', required=True,
-			action='store', dest='q', help='uncorrected bed12 file')
-	required.add_argument('-g', '--genome', action='store', dest='g',
-		type=str, required=True, help='FastA of reference genome')
-	atleastone.add_argument('-j', '--shortread', action='store', dest='j', type=str, default='',
-		help='bed format splice junctions from short-read sequencing')
-	atleastone.add_argument('-f', '--gtf', default='',
-		action='store', dest='f', help='GTF annotation file')
-	parser.add_argument('-c', '--chromsizes', type=str, action='store',
-		dest='c', default='', help='chromosome sizes tab-separated file, specify if working with .psl')
-	parser.add_argument('--nvrna', action='store_true', dest='n', default=False,
-		help='''specify this flag to keep the strand of a read consistent after correction''')
-	parser.add_argument('-t', '--threads', type=str, action='store', dest='t', default='4',
-		help='splice site correction script number of threads (4)')
-	parser.add_argument('-w', '--ss_window', action='store', dest='w', default='10',
-		help='window size for correcting splice sites (W=10)')
-	parser.add_argument('-o', '--output',
-		action='store', dest='o', default='flair', help='output name base (default: flair)')
-	parser.add_argument('--print_check',
-		action='store_true', dest='p', default=False, help='Print err.txt with step checking.')
-	args, unknown = parser.parse_known_args()
-	if unknown:
-		sys.stderr.write('Correct unrecognized arguments: {}\n'.format(' '.join(unknown)))
-		if not aligned_reads:
-			return 1
-
-	if aligned_reads:
-		args.q = aligned_reads
-
-	if not args.j and not args.f:
-		sys.stderr.write('Please specify at least one of the -f or -j arguments for correction\n')
-		return 1
-	correction_cmd = [sys.executable, path+'bin/ssCorrect.py', '-i', args.q,
-			'-w', args.w, '-p', args.t, '-o', args.o, '--progress', '-f', args.g]
-	if not args.n:
-		correction_cmd += ['--correctStrand']
-	if args.j:
-		correction_cmd += ['-j', args.j]
-	if args.f:
-		correction_cmd += ['-g', args.f]
-	if args.p:
-		correction_cmd += ['--print_check']
-
-	if subprocess.call(correction_cmd):
-		sys.stderr.write('Correction command did not exit with success status\n')
-
-	if args.c and subprocess.call([sys.executable, path+'bin/bed_to_psl.py', args.c, args.o+'_all_corrected.bed',
-		args.o+'_all_corrected.psl']):
-		return 1
-
-	return args.o+'_all_corrected.bed'
-
 
 def collapse_range(corrected_reads='', aligned_reads=''):
 	parser = argparse.ArgumentParser(description='flair-collapse parse options',
