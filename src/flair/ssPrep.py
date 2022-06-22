@@ -20,7 +20,7 @@ from utils import handle_prog_errors
 
 
 import os, sys
-from kerneltree import IntervalTree
+from ncls import NCLS
 from tqdm import *
 import pybedtools
 
@@ -221,7 +221,7 @@ def ssCorrrect(c,strand,ssType,intTree,ssData):
     correct un-annotated splice sites.
     '''
 
-    hits = intTree.search(c,c)
+    hits = [h for h in intTree.find_overlap(c,c)]
     
     if len(hits)<1:
         ss = SS(c,strand,None)
@@ -329,9 +329,6 @@ def correctReads(bed, intTree, ssData, filePrefix, correctStrand, wDir):
 
 
 
-
-
-
 def buildIntervalTree(juncs, wiggle, fasta):
     ''' Builds read and splice site objects '''
 
@@ -339,7 +336,8 @@ def buildIntervalTree(juncs, wiggle, fasta):
         with open(checkFname,'a+') as fo:
             print("** Initializing int tree for chromosome %s" % (currentChr), file=fo)
 
-    x = IntervalTree()
+    #x = IntervalTree()
+    x = []
     data = dict()
 
     with open(juncs) as lines:
@@ -362,7 +360,7 @@ def buildIntervalTree(juncs, wiggle, fasta):
                 
                 # Add to tree and object to data
                 data[c1] = ss
-                x.add(c1S,c1E,c1)
+                x.append([c1S,c1E,c1])
 
             else:
                 data[c1].support.add(annoType)
@@ -378,14 +376,16 @@ def buildIntervalTree(juncs, wiggle, fasta):
                 
                 # Add to tree and object to data
                 data[c2] = ss
-                x.add(c2S,c2E,c2)
+                x.append([c2S,c2E,c2])
             else:
                 data[c2].support.add(annoType)
+    intTree = NCLS([val[0]-1 for val in x], [val[1]+1 for val in x], [val[2] for val in x])
     if checkFname: 
         with open(checkFname,'a+') as fo:
             print("** Tree Initilized. %s data points added for chromosome %s." % (len(list(data.keys())),currentChr), file=fo)
 
-    return x, data
+    return intTree, data
+
 
 def main():
     '''
