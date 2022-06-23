@@ -327,7 +327,7 @@ def main():
         if status == 2:
             is_psl = False
         elif status:
-            sys.stderr.write('bin/psl_to_bed.py did not exit with success status\n')
+            sys.stderr.write('psl_to_bed.py did not exit with success status\n')
             sys.exit(1)
         else:
             bed = bed+'.bed'

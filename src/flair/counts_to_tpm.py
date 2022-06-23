@@ -11,7 +11,7 @@ try:
 		sizefile = ''
 except:
 	sys.stderr.write('usage: script.py counts_matrix.tsv count_matrix.tpm.tsv [iso.sizes]\n')
-	sys.stderr.write('convenience script for obtaining a file of isoform sizes: bin/fasta_seq_lengths.py\n')
+	sys.stderr.write('convenience script for obtaining a file of isoform sizes: fasta_seq_lengths.py\n')
 	sys.stderr.write('if no isoform size file is provided, no length normalization will be done (just reads per million)\n')
 	sys.exit()
 
