@@ -51,7 +51,7 @@ test-correct-short-reads-annotation :
 	diff -q <(sort $R/test.correct.shortread.annotation_all_corrected.bed) <(sort $O/test.correct.shortread.annotation_all_corrected.bed) > $D/test.correct_shortread_annotation.corrected.diff
 
 test-correct-params :
-	python -u $(FLAIR) correct --query $(UNCORRECTED_READS_BED) --shortread $R/shortread_junctions.tab --genome $(GENOME) --output $O/test.correct.params --chromsizes $R/chrom.sizes --nvrna --ss_window 8
+	python -u $(FLAIR) correct --query $(UNCORRECTED_READS_BED) --shortread $R/shortread_junctions.tab --genome $(GENOME) --output $O/test.correct.params --chromsizes $R/chrom.sizes --nvrna --ss_window 8 --print_check
 	diff -q <(sort $R/test.correct.params_all_inconsistent.bed ) <(sort $O/test.correct.params_all_inconsistent.bed) > $D/test.correct.params.diff
 
 test-correct-window-25 :

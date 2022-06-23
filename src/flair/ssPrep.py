@@ -382,7 +382,7 @@ def buildIntervalTree(juncs, wiggle, fasta):
     intTree = NCLS([val[0]-1 for val in x], [val[1]+1 for val in x], [val[2] for val in x])
     if checkFname: 
         with open(checkFname,'a+') as fo:
-            print("** Tree Initilized. %s data points added for chromosome %s." % (len(list(data.keys())),currentChr), file=fo)
+            print("** Tree Initialized. %s data points added for chromosome %s." % (len(list(data.keys())),currentChr), file=fo)
 
     return intTree, data
 

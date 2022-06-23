@@ -53,7 +53,7 @@ def parseCommandLine():
 		return 1
 	return args
 
-def addOtherJuncs(juncs, bedJuncs, chromosomes, fa, known, printErr, verbose):
+def addOtherJuncs(juncs, bedJuncs, chromosomes, fa, known, printErr, printErrFname, verbose):
 
     lineNum = 0
     if verbose: sys.stderr.write("Step 2/5: Processing additional junction file  %s ..." % (bedJuncs))
@@ -165,7 +165,7 @@ def addOtherJuncs(juncs, bedJuncs, chromosomes, fa, known, printErr, verbose):
 
     return juncs, chromosomes
 
-def gtfToSSBed(infile, knownSS, printErr, verbose):
+def gtfToSSBed(infile, knownSS, printErr, printErrFname, verbose):
     ''' Convenience function, reformats GTF to bed'''
 
     # First: get all exons per transcript.
@@ -238,15 +238,15 @@ def runCMD(x):
 
     tDir, prefix,juncs,reads, rs, f, err, errFname = x
     resolveStrand = True if rs else False
-    checkFname = True if err else False
+    checkFname = errFname if err else False
     try:
         ssPrep(bed=reads, knownJuncs=juncs, fa=f, wiggle=15, out=prefix, resolveStrand=resolveStrand, 
 		workingDir=tDir, checkFname=checkFname)
     except Exception as ex:
-        sys.stderr.write('ssPrep command did not exit with success status\n')
         handle_prog_errors(ex, True)
+        sys.stderr.write('ssPrep command did not exit with success status\n')
 #    except:
-#        return 1
+        return 1
     return 0
 
 
@@ -276,10 +276,10 @@ def ssCorrect(bed, gtf, otherJuncs, wiggle, threads, outFile, keepTemp, resolveS
 
     # Convert gtf to bed and split by cromosome.
     juncs, chromosomes, knownSS  = dict(), set(), dict() # initialize juncs for adding to db
-    if gtf != None: juncs, chromosomes, knownSS = gtfToSSBed(gtf, knownSS, printErr, verbose)
+    if gtf != None: juncs, chromosomes, knownSS = gtfToSSBed(gtf, knownSS, printErr, printErrFname, verbose)
 
     # Do the same for the other juncs file.
-    if otherJuncs != None: juncs, chromosomes = addOtherJuncs(juncs, otherJuncs, chromosomes, genomeFasta, knownSS, printErr, verbose)
+    if otherJuncs != None: juncs, chromosomes = addOtherJuncs(juncs, otherJuncs, chromosomes, genomeFasta, knownSS, printErr, printErrFname, verbose)
     knownSS = dict()
 
     # added to allow annotations not to be used.
@@ -371,9 +371,11 @@ def correct(aligned_reads=False):
 	try:
 		ssCorrect(bed=args.q, gtf=args.f, otherJuncs=args.j, wiggle=args.w, threads=args.t, outFile=args.o, 
 			keepTemp=False, resolveStrand=resolveStrand, tempDirName=None, genomeFasta=args.g, verbose=verbose, printErr=args.p)
-	except:
+	except Exception as ex:
+		handle_prog_errors(ex, True)
 		sys.stderr.write('Correction command did not exit with success status\n')
-		return 1
+	#except:
+	#	return 1
 
 	if args.c:
 		try:
