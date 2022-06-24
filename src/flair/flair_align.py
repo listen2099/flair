@@ -4,10 +4,9 @@ import sys
 import argparse
 import subprocess
 import os
-import tempfile
-import glob
 from sam_to_psl import sam_to_psl
 from bam2Bed12 import bam2Bed12
+
 
 def parseCommandLine():
 	parser = argparse.ArgumentParser(description='flair-align parse options',
@@ -63,11 +62,12 @@ def parseCommandLine():
 			sys.stderr.write('Check that read file {} exists\n'.format(args.r[i]))
 			return 1
 		if args.pychopper:
-			subprocess.call([args.pychopper, '-t', args.t, '-r', args.o+'.'+args.r[i]+'.pychopper_report.pdf',
+			subprocess.check_call([args.pychopper, '-t', args.t, '-r', args.o+'.'+args.r[i]+'.pychopper_report.pdf',
 				'-u', args.o+'.'+args.r[i]+'.unclassified.fastq', '-w', args.o+'.'+args.r[i]+'.rescued.fastq',
 				args.r, args.o+'.'+args.r[i]+'.trimmed.fastq'])
 			args.r[i] = args.o+'.'+args.r[i]+'.trimmed.fastq'
 	return args
+
 
 def align():
 	args = parseCommandLine()
@@ -102,8 +102,8 @@ def align():
 			sys.stderr.write('Possible issue with samtools, see {}\n'.format(args.o+'.samtools_stderr'))
 			return 1
 
-		subprocess.call(['mv', args.o+'.q.sam', args.o+'.sam'])
-		subprocess.call(['rm', args.o+'.samtools_stderr'])
+		subprocess.check_call(['mv', args.o+'.q.sam', args.o+'.sam'])
+		subprocess.check_call(['rm', args.o+'.samtools_stderr'])
 
 	if args.p:
 		try:
@@ -132,7 +132,7 @@ def align():
 			stderr=open(args.o+'.bam.stderr', 'w')):
 			sys.stderr.write('Samtools issue with sorting minimap2 sam\n')
 			return 1
-		subprocess.call(['rm', args.o+'.bam.stderr'])
+		subprocess.check_call(['rm', args.o+'.bam.stderr'])
 	else:
 		if subprocess.call([args.sam, 'view', '-h', '-Sb', '-@', args.t, args.o+'.sam'],
 				stdout=open(args.o+'.unsorted.bam', 'w')):
@@ -142,14 +142,14 @@ def align():
 				stderr=open(args.o+'.unsorted.bam.stderr', 'w')):
 			sys.stderr.write('If using samtools v1.3+, please specify -v1.3 argument\n')
 			return 1
-		subprocess.call(['rm', args.o+'.unsorted.bam', args.o+'.unsorted.bam.stderr'])
+		subprocess.check_call(['rm', args.o+'.unsorted.bam', args.o+'.unsorted.bam.stderr'])
 
-	subprocess.call([args.sam, 'index', args.o+'.bam'])
+	subprocess.check_call([args.sam, 'index', args.o+'.bam'])
 
 	keep_supplementary = True if args.N != 0 else False
 	bam2Bed12(args.o+'.bam', args.o+'.bed', keep_supplementary)
 	return args.o+'.bed'
 
+
 if __name__ == "__main__":
 	align()
-

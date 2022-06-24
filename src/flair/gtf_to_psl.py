@@ -28,12 +28,12 @@ iso_to_cds = {}
 with open(args.psl, 'wt') as outfile:
 	writer = csv.writer(outfile, delimiter='\t', lineterminator=os.linesep)
 
-	prev_transcript = ''
+	blocksizes, blockstarts, prev_chrom, prev_gene, prev_strand, prev_transcript = ('',)*6
 	for line in open(args.gtf):  # extract all exons from the gtf, keep exons grouped by transcript
 		if line.startswith('#'):
 			continue
 		line = line.rstrip().split('\t')
-		chrom, ty, start, end, strand = line[0], line[2], int(line[3]) - 1 , int(line[4]), line[6]
+		chrom, ty, start, end, strand = line[0], line[2], int(line[3]) - 1, int(line[4]), line[6]
 		this_transcript = line[8][line[8].find('transcript_id')+15:]
 		this_transcript = this_transcript[:this_transcript.find('"')]
 
@@ -65,7 +65,7 @@ with open(args.psl, 'wt') as outfile:
 					for b in blocksizes[:-1]:
 						pos += b
 						qstarts += [pos]
-					qstarts = ','.join([str(b) for b in qstarts]) + ',' 
+					qstarts = ','.join([str(b) for b in qstarts]) + ','
 
 				blocksizes = ','.join([str(b) for b in blocksizes]) + ','
 
@@ -113,7 +113,7 @@ with open(args.psl, 'wt') as outfile:
 	else:
 		qname = this_transcript
 	if isbed:
-		relblockstarts = [block - tstart for block in blockstarts]		
+		relblockstarts = [block - tstart for block in blockstarts]
 		relblockstarts = ','.join([str(b) for b in relblockstarts]) + ','
 		if qname in iso_to_cds:
 			cds_start, cds_end = iso_to_cds[qname]
@@ -133,4 +133,3 @@ with open(args.psl, 'wt') as outfile:
 				chrom, 0, tstart, tend, blockcount, blocksizes, qstarts, blockstarts])
 if missing_chroms:
 	sys.stderr.write('chromosomes found in gtf but not in chrom_sizes file: {}\n'.format(missing_chroms))
-
