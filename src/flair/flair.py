@@ -7,8 +7,9 @@ import os
 import tempfile
 import glob
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-from flair_align import align 
+from flair_align import align
 from flair_correct import correct
+from utils import minimap_ok
 #from flair_collapse import collapse
 
 
@@ -83,6 +84,11 @@ def collapse_range(corrected_reads='', aligned_reads=''):
 	args, unknown = parser.parse_known_args()
 	if unknown and not args.quiet:
 		sys.stderr.write('Collapse-range unrecognized arguments: {}\n'.format(' '.join(unknown)))
+
+	if args.salmon:
+		if not os.path.exists(args.salmon):
+			sys.stderr.write(f'\n{args.salmon} is not a valid path for salmon, please specify\n')
+			return 1
 
 	if corrected_reads:
 		args.q = corrected_reads
@@ -248,6 +254,10 @@ def collapse(genomic_range='', corrected_reads=''):
 		sys.stderr.write('Collapse unrecognized arguments: {}\n'.format(' '.join(unknown)))
 		if not corrected_reads:
 			return 1
+	if args.salmon:
+		if not os.path.exists(args.salmon):
+			sys.stderr.write(f'\n{args.salmon} is not a valid path for salmon, please specify\n')
+			return 1
 	if corrected_reads:
 		args.q = corrected_reads
 
@@ -296,7 +306,6 @@ def collapse(genomic_range='', corrected_reads=''):
 	if float(args.s) < 1 and not args.f:
 		sys.stderr.write('Provide gtf for gene grouping if -s is percentage of total gene expression\n')
 		return 1
-
 
 	if args.range:
 		# subset out the read sequences and corrected reads corresponding to the specified range
@@ -389,7 +398,7 @@ def collapse(genomic_range='', corrected_reads=''):
 				sys.stderr.write('Making transcript fasta using annotated gtf and genome sequence\n')
 			args.annotated_bed = args.o+'annotated_transcripts.bed'
 			subprocess.call([sys.executable, path+'gtf_to_psl.py', args.f, args.annotated_bed, '--include_gene'])
-			# subprocess.call([sys.executable, path+'identify_gene_isoform.py', args.annotated_bed, 
+			# subprocess.call([sys.executable, path+'identify_gene_isoform.py', args.annotated_bed,
 			# 	args.f, args.annotated_bed])
 
 		if args.annotation_reliant == 'generate':
@@ -481,7 +490,7 @@ def collapse(genomic_range='', corrected_reads=''):
 	if not args.quiet:
 		sys.stderr.write('Aligning reads to first-pass isoform reference\n')
 	align_files = []
-	alignout = args.temp_dir + tempfile_name +'firstpass.'
+	alignout = args.temp_dir + tempfile_name + 'firstpass.'
 	try:
 		if args.mm2_args:
 			args.mm2_args = args.mm2_args.split(',')
@@ -499,7 +508,7 @@ def collapse(genomic_range='', corrected_reads=''):
 			stdout=open(alignout+'mapped.sam', 'w')):
 			return 1
 		subprocess.call(['mv', alignout+'mapped.sam', alignout+'sam'])
-		subprocess.call([args.salmon, 'quant', '-t', args.o+'firstpass.fa', '-o',  alignout+'salmon',
+		subprocess.call([args.salmon, 'quant', '-t', args.o+'firstpass.fa', '-o', alignout+'salmon',
 			'-p', args.t, '-l', 'U', '-a', alignout+'sam'], stderr=open(alignout+'salmon_stderr.txt', 'w'))
 		subprocess.call([sys.executable, path+'combine_counts.py', alignout+'salmon/quant.sf', count_file])
 		align_files += [alignout+'sam', alignout+'salmon/quant.sf']
@@ -541,8 +550,8 @@ def collapse(genomic_range='', corrected_reads=''):
 
 	if args.annotation_reliant:
 		subprocess.call([sys.executable, path+'filter_collapsed_isoforms_from_annotation.py', '-s', str(min_reads),
-			'-i', args.o+'isoforms'+ext, '--map_i', args.o+'isoform.read.map.txt', 
-			'-a',  args.o+'annotated_transcripts.supported'+ext, '--map_a', args.o+'annotated_transcripts.isoform.read.map.txt',
+			'-i', args.o+'isoforms'+ext, '--map_i', args.o+'isoform.read.map.txt',
+			'-a', args.o+'annotated_transcripts.supported'+ext, '--map_a', args.o+'annotated_transcripts.isoform.read.map.txt',
 			'-o', args.o+'isoforms'+ext, '--new_map', args.o+'combined.isoform.read.map.txt'])
 
 	if not args.range:  # also write .fa and .gtf files
@@ -618,7 +627,15 @@ def quantify(isoform_sequences=''):
 		sys.stderr.write('Quantify unrecognized arguments: {}\n'.format(' '.join(unknown)))
 		if not isoform_sequences:
 			return 1
-
+	if args.salmon:
+		if not os.path.exists(args.salmon):
+			sys.stderr.write(f'\n{args.salmon} is not a valid path for salmon, please specify\n')
+			return 1
+	else:
+		args.m = minimap_ok(args.m)
+		if not args.m:
+			sys.stderr.write('\nCannot find minimap2, please install or give input path using --minimap2\n')
+			return 1
 	if isoform_sequences:
 		args.i = isoform_sequences
 		args.o += '.counts_matrix.tsv'
@@ -640,11 +657,11 @@ def quantify(isoform_sequences=''):
 		sys.stderr.write('Numpy import error. Please pip install numpy. Exiting.\n')
 		return 1
 
-	if args.m[-8:] != 'minimap2':
-		if args.m[-1] == '/':
-			args.m += 'minimap2'
-		else:
-			args.m += '/minimap2'
+#	if args.m[-8:] != 'minimap2':
+#		if args.m[-1] == '/':
+#			args.m += 'minimap2'
+#		else:
+#			args.m += '/minimap2'
 	args.t, args.quality = str(args.t), str(args.quality)
 	samData = list()
 	with codecs.open(args.r, 'r', encoding='utf-8', errors='ignore') as lines:
@@ -820,13 +837,13 @@ def diffSplice(isoforms='', counts_matrix=''):
 		for DRIMSeq testing; events with too few samples are filtered out and not tested (6)''')
 	parser.add_argument('--drim2', action='store', dest='drim2', type=int, required=False, default=3,
 		help='''The minimum number of samples expressing the inclusion of an AS event;
-		 events with too few samples are filtered out and not tested (3)''')
+		events with too few samples are filtered out and not tested (3)''')
 	parser.add_argument('--drim3', action='store', dest='drim3', type=int, required=False, default=15,
 		help='''The minimum number of reads covering an AS event inclusion/exclusion for DRIMSeq testing,
-		 events with too few samples are filtered out and not tested (15)''')
+		events with too few samples are filtered out and not tested (15)''')
 	parser.add_argument('--drim4', action='store', dest='drim4', type=int, required=False, default=5,
 		help='''The minimum number of reads covering an AS event inclusion for DRIMSeq testing,
-		 events with too few samples are filtered out and not tested (5)''')
+		events with too few samples are filtered out and not tested (5)''')
 	parser.add_argument('--batch', action='store_true', dest='batch', required=False, default=False,
 		help='''If specified with --test, DRIMSeq will perform batch correction''')
 	parser.add_argument('--conditionA', action='store', dest='conditionA', required=False, default='',
@@ -873,7 +890,7 @@ def diffSplice(isoforms='', counts_matrix=''):
 			if not args.conditionB:
 				sys.stderr.write('Both conditionA and conditionB must be specified, or both left unspecified\n')
 				return 1
-			ds_command += ['--conditionA', args.conditionA, '--conditionB',  args.conditionB]
+			ds_command += ['--conditionA', args.conditionA, '--conditionB', args.conditionB]
 
 		with open(args.o+'.stderr.txt', 'w') as ds_stderr:
 			subprocess.call(ds_command + ['--matrix', args.o+'.es.events.quant.tsv', '--prefix', args.o+'.es'], stderr=ds_stderr)
@@ -929,7 +946,7 @@ if mode == 'collapse-range' or '3.5' in mode:
 
 	if corrected_reads and not aligned_reads:
 		sys.stderr.write('''Collapse 3.5 run consecutively without align module; will assume {}
-		 to be the name of the aligned reads bam file\n'''.format(corrected_reads[:-18]+'.bam'))
+			to be the name of the aligned reads bam file\n'''.format(corrected_reads[:-18]+'.bam'))
 		status = collapse_range(corrected_reads=corrected_reads,
 			aligned_reads=corrected_reads[:-18]+'.bam')
 	elif corrected_reads and aligned_reads:

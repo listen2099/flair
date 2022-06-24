@@ -17,7 +17,7 @@ ISOFORMS_BED = $R/test.collapse.isoforms.bed
 READS_MANIFEST = $R/reads_manifest.txt
 COUNTS_MATRIX = $R/counts_matrix.2.tsv
 
-SALMON_PATH = ~/bl/bin/salmon-0.12.0_linux_x86_64/bin/salmon
+SALMON_PATH = /hive/users/jeltje/flair/salmon-1.8.0_linux_x86_64/bin/salmon
 FIRSTPASS_Q_SAM = hello/tmp5_ls3qcw.firstpass.q.sam
 FIRSTPASS_BED = $R/test.collapse.firstpass.bed
 
@@ -157,7 +157,7 @@ test-collapse-range :
 
 test-quantify-mapq :
 	python -u $(FLAIR) quantify -r $(READS_MANIFEST) -i $(ISOFORMS_FA) --temp_dir $O/test.collapse.temp --tpm -o $O/test.quantify.mapq.counts_matrix.tsv
-	diff -q <(sort $R/test.quantify.salmon.counts_matrix.tsv) <(sort $O/test.quantify.salmon.counts_matrix.tsv) > $D/test.quantify.salmon.diff
+	diff -q <(sort $R/test.quantify.mapq.counts_matrix.tsv) <(sort $O/test.quantify.mapq.counts_matrix.tsv) > $D/test.quantify.mapq.diff
 
 test-quantify-mapq-trust-ends :
 	python -u $(FLAIR) quantify -r $(READS_MANIFEST) -i $(ISOFORMS_FA) --temp_dir $O/test.collapse.temp --tpm -o $O/test.quantify.mapq.trust_ends.counts_matrix.tsv
@@ -188,7 +188,7 @@ test-diff-iso-usage :
 	#diff -q <(sort $R/bed) <(sort $O/bed) > $D/test..diff
 
 test-plot-isoform-usage : 
-	python -u $(FLAIR_BIN)plot_isoform_usage.py $(ISOFORMS_BED) $(COUNTS_MATRIX) ENSG00000133703.12 $O/test.plot_isoform_usage.kras
+	python -u $(FLAIR_BIN)plot_isoform_usage.py $(ISOFORMS_BED) $(COUNTS_MATRIX) ENSG00000133703.12 > $O/test.plot_isoform_usage.kras
 	#diff -q <(sort $R/bed) <(sort $O/bed) > $D/test..diff
 
 test-123 :
